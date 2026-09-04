@@ -253,11 +253,20 @@ ol,ul{padding:0;list-style:none}
 }
 
 /* ---------- marca ----------
-   .lock (display, line-height, padding/margin de compensação da descendente
-   do "y" etc.) está definido uma única vez, perto do topo do arquivo — ver
-   "LOCKUP — valores de marca". Não redeclarar padding-bottom/margin-bottom
-   aqui: duas regras .lock com a mesma especificidade já causaram esse bug
-   voltar depois de "corrigido". */
+   .lock (display/line-height/etc.) está definido perto do topo do arquivo,
+   dentro do bloco da ABERTURA — ver "LOCKUP — valores de marca". A
+   compensação de padding-bottom/margin-bottom do "y", por escolha, mora
+   AQUI, fora daquele bloco: a abertura já foi revertida pra cópia literal
+   de outro arquivo mais de uma vez, e uma correção que morasse lá dentro
+   simplesmente desaparece no próximo revert (foi o que aconteceu). Aqui ela
+   sobrevive. NÃO redeclarar padding-bottom/margin-bottom de .lock em nenhum
+   outro lugar do arquivo — duas regras de mesma especificidade é o bug que
+   já se repetiu duas vezes.
+   Derivação (medida com fontTools na Rubik 600 real embutida no arquivo):
+   unitsPerEm 1000, hhea asc/desc 935/−250, glifo "y" desce a −190 (−0,190em).
+   Com line-height:1 a caixa cobre só até −0,1575em da base — 0,0325em de
+   folga. .14em reservado é ~4,3× essa folga, margem para hinting/browser. */
+.lock{padding-bottom:.14em;margin-bottom:-.14em}
 .lock .disc svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 
 /* régua de hachura a 58° — assinatura, não elemento gráfico.
