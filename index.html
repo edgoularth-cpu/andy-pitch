@@ -97,31 +97,8 @@
 
 /* ---------------------------------------------------------------------------
    LOCKUP — valores de marca, não mexer
-
-   Correção da descendente do "y" (definição ÚNICA — antes havia duas regras
-   .lock{padding-bottom...} de mesma especificidade e valores diferentes; a
-   que vinha depois no arquivo sempre vencia a cascata, então uma "corrigia"
-   e a outra, sem querer, desfazia. Não duplicar de novo — se .lock aparecer
-   em outro contexto, ajuste font-size/color em regra própria (ex.: .foo
-   .lock{...}) e deixe padding/margin só aqui.
-
-   Métrica REAL medida com fontTools na Rubik 600 embutida no arquivo
-   (fvar wght=600, instanciada com varLib.instancer — MVAR não varia
-   ascent/descent nesta fonte, então o resultado é o mesmo em qualquer peso):
-     unitsPerEm 1000 · hhea/OS2-typo ascent 935, descent −250 (idênticos;
-     fsSelection tem USE_TYPO_METRICS ligado, então é isso que o navegador
-     usa para line-height:1) · glyf 'y' yMin real = −190 (−0,190em).
-   Com line-height:1, meia-entrelinha = (1000 − (935+250))/2 = −92,5 unid.
-   A base do glifo cai a 935−92,5 = 842,5 unid. do topo da caixa; o fundo da
-   caixa fica 250−92,5 = 157,5 unid. (0,1575em) abaixo da base. O 'y' desce
-   190 unid. (0,190em) abaixo da base — 0,0325em além do fundo da caixa.
-   Reivindicamos esse espaço com padding-bottom e devolvemos com margin-bottom
-   negativo igual (mesma técnica em toda ocorrência): a caixa cresce para
-   baixo, o layout não anda 1px. .14em é ~4,3× a folga medida — margem para
-   variação de hinting/rounding entre navegadores, sem ficar visível (o
-   espaço extra é vazio e some do fluxo via margin negativo).            */
-.lock{display:inline-flex;align-items:baseline;line-height:1;font-weight:600;white-space:nowrap;
-  padding-bottom:.14em;margin-bottom:-.14em}
+--------------------------------------------------------------------------- */
+.lock{display:inline-flex;align-items:baseline;line-height:1;font-weight:600;white-space:nowrap}
 .lock .disc{flex:0 0 auto;position:relative;width:.845em;height:.845em;top:.094em}
 .lock{font-family:Rubik,sans-serif;letter-spacing:-.036em;gap:.135em}
 
@@ -141,8 +118,8 @@
   position:absolute; left:0; top:0; pointer-events:none;
   -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
   /* 32deg em CSS = subindo para a direita a 58° da horizontal (90 − 58 = 32) */
-  -webkit-mask-image:linear-gradient(32deg, transparent 20%, rgba(0,0,0,.55) 50%, transparent 80%);
-  mask-image:linear-gradient(32deg, transparent 20%, rgba(0,0,0,.55) 50%, transparent 80%);
+  -webkit-mask-image:linear-gradient(32deg, transparent 41%, #000 50%, transparent 59%);
+  mask-image:linear-gradient(32deg, transparent 41%, #000 50%, transparent 59%);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1214,14 +1191,8 @@ window.andyIntro = function(el, done){
      hachura: a ordem perpendicular (projeção sobre v) decide qual agente vira
        qual linha do disco — assim eles "penteiam" sem se cruzar.             */
   ag.forEach(function(A){
-    /* Pondera pela proporção do PALCO REAL onde isso roda: o artboard do
-       deck é fixo em 1680×672 = 5:2, nunca 16:9 — herdado do arquivo de
-       demonstração solta, onde a página é a tela cheia (proporção variável,
-       16:9 era só um chute razoável). Aqui é sempre 5:2, então a ordem de
-       convergência das 46 hachuras (que decide o desenho do disco) para de
-       ficar torta/sem lógica visual num palco tão mais largo que alto. */
-    A.projU = A.cxn*5*UX + A.cyn*2*UY;
-    A.projV = A.cxn*5*VX + A.cyn*2*VY;
+    A.projU = A.cxn*16*UX + A.cyn*9*UY;   // 16:9 pondera a proporção de tela
+    A.projV = A.cxn*16*VX + A.cyn*9*VY;
   });
   ag.slice().sort(function(a,b){ return a.projU-b.projU; })
     .forEach(function(A,k){
@@ -1274,7 +1245,6 @@ window.andyIntro = function(el, done){
     word.style.color   = css(C_INK_L);
     lockwrap.style.opacity = '1';
     cvs.style.opacity = '0';
-    if(el.__andyFlood) el.__andyFlood(1);
   }
 
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1489,12 +1459,6 @@ window.andyIntro = function(el, done){
        não é gradiente. Só começa quando o disco já está formado: a claridade
        é o clímax, não um fundo trocando.                                     */
     var fp = eInOutCubic(seg(t, T.flood, T.floodD));
-    /* Gancho pro palco por fora do .andy-stage: o board (1680×672) quase nunca
-       enche a tela toda, sobra tarja nas bordas — e essa tarja é pintada pelo
-       fundo do .screen por fora, não pelo .andy-stage. Sem chamar isso aqui,
-       a tarja fica escura pra sempre mesmo depois da virada de cor: existia
-       o gancho (__andyFlood, embaixo no JS do palco) mas nada nunca chamava. */
-    if(el.__andyFlood) el.__andyFlood(fp);
     if(fp>0){
       flood.style.display='block';
       if(fp>=1){ flood.style.clipPath='none'; }
@@ -1570,8 +1534,6 @@ window.andyIntro = function(el, done){
       sweepEl.style.maskSize       = Lm.toFixed(0)+'px '+Lm.toFixed(0)+'px';
       sweepEl.style.webkitMaskPosition = mx+' '+my;
       sweepEl.style.maskPosition       = mx+' '+my;
-      // fade em sino: entra e sai suave, nunca aparece/some seco na borda do intervalo
-      sweepEl.style.opacity = Math.sin(sp*Math.PI).toFixed(3);
     } else if(sweepEl){
       sweepEl.remove(); sweepEl=null;
     }
