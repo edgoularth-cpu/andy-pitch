@@ -221,7 +221,13 @@ body{
   text-rendering:optimizeLegibility;
   cursor:default;
 }
-h1,h2,h3,.rubik,.lock{font-family:Rubik,Inter,sans-serif}
+/* .lock NÃO entra nesta lista. Ele já tem font-family no bloco da ABERTURA
+   ("LOCKUP — valores de marca"), com a MESMA especificidade (0,1,0) — e como
+   esta regra vem depois, ela vencia. Inócuo enquanto a Rubik carrega, mas o
+   fallback mudava de sans-serif para Inter, e a reserva de .14em do descendente
+   do "y" foi derivada com fontTools sobre a Rubik real. Duas regras de mesma
+   especificidade para .lock é exatamente o bug que já se repetiu duas vezes. */
+h1,h2,h3,.rubik{font-family:Rubik,Inter,sans-serif}
 h1,h2,h3,p,ul,ol,figure,table{margin:0}   /* a margem default do h2 e' 0.83em: em titulo de 112px isso e' 93px de empurrao */
 ol,ul{padding:0;list-style:none}
 
@@ -250,6 +256,41 @@ ol,ul{padding:0;list-style:none}
   position:relative; z-index:1;
   width:100%; height:100%;
   display:flex; flex-direction:column; justify-content:center;
+}
+
+/* ---------- TELA 0 · a abertura NÃO é um slide dentro do artboard ----------
+   Ela roda em tela cheia, sem os 1680×672 e sem --fit. Três motivos, todos
+   já medidos neste arquivo:
+
+   1. FAIXAS. O artboard 1680×672 é 2,5:1 numa janela 16:9, então sobram
+      tarjas acima e abaixo. No ato 3 a abertura fica clara DENTRO do board
+      e a tarja continuava #090D11 — as faixas pretas. Havia um gancho
+      __andyFlood para virar a tarja junto, mas a abertura foi revertida
+      para a cópia literal da referência e a chamada do gancho sumiu junto.
+      Sem artboard não há tarja, logo não há o que sincronizar.
+
+   2. CENTRO. measure() mede o palco com getBoundingClientRect(). Num
+      elemento com transform:scale(--fit) isso devolve px JÁ multiplicados
+      por --fit, mas o canvas e o --shiftY são escritos em px NÃO escalados
+      do espaço do board. Misturar os dois espaços é o que jogava o disco
+      para fora do centro e cortava a marca no Y. Sem transform, os dois
+      espaços são o mesmo e a conta da referência vale literalmente.
+
+   3. TAMANHO. .andy-stage .lock usa clamp(...,9.4vmin,...) — vmin é da
+      JANELA, não do board. Dentro de um board escalado, o lockup saía com
+      tamanho descasado do disco grande (que vem de min(W,H)*0,34, medido no
+      board). Em tela cheia as duas medidas voltam a ser a mesma tela e a
+      marca fica no tamanho da referência.
+
+   NÃO devolver #introBoard para dentro de .board. É o revert que já trouxe
+   os quatro sintomas de volta mais de uma vez. */
+#introBoard{
+  position:absolute;
+  left:0; top:0; right:0; bottom:0;
+  width:auto; height:auto;
+  transform:none;
+  background:transparent;
+  overflow:visible;   /* o overflow:hidden de .board é o instrumento do corte */
 }
 
 /* ---------- marca ----------
@@ -1217,6 +1258,16 @@ window.andyIntro = function(el, done){
   var W=0,H=0,CX=0,CY=0,D=0,RAD=0,SPAN=0,uS=1,scaleUp=1,dx0=0;
   function measure(){
     var rect = stage.getBoundingClientRect();
+    /* FATOR DE ESCALA DO PALCO — não remover.
+       getBoundingClientRect devolve px DE TELA: se algum ancestral tiver
+       transform:scale (o .board do pitch tem scale(--fit)), os valores já vêm
+       multiplicados. Mas --shiftY e dx0 são escritos como px CSS dentro desse
+       mesmo ancestral, então o navegador os multiplica de novo — erro vertical
+       de shiftY*(1/fit − 1), que é o "y cortado"/marca fora do centro que já
+       voltou três vezes. Dividir por SC normaliza tudo para o espaço de layout
+       do palco. Com palco sem transform, SC = 1 e a conta é a da referência. */
+    var SC = rect.width / Math.max(1, stage.offsetWidth || rect.width) || 1;
+    rect = {left:rect.left/SC, top:rect.top/SC, width:rect.width/SC, height:rect.height/SC};
     W = Math.max(1, rect.width); H = Math.max(1, rect.height);
     var dpr = Math.min(window.devicePixelRatio||1, 2);
     cvs.width = Math.round(W*dpr); cvs.height = Math.round(H*dpr);
@@ -1233,11 +1284,11 @@ window.andyIntro = function(el, done){
     lockwrap.style.setProperty('--shiftY','0px');
     mark.style.transform = 'none';
     var dr = discEl.getBoundingClientRect();
-    var dcx = dr.left - rect.left + dr.width/2;
-    var dcy = dr.top  - rect.top  + dr.height/2;
+    var dcx = dr.left/SC - rect.left + (dr.width/SC)/2;
+    var dcy = dr.top/SC  - rect.top  + (dr.height/SC)/2;
     lockwrap.style.setProperty('--shiftY', (CY - dcy).toFixed(2)+'px');
     dx0 = CX - dcx;
-    scaleUp = D / Math.max(1, dr.width);
+    scaleUp = D / Math.max(1, dr.width/SC);
     mark.style.transform = 'translateX('+dx0.toFixed(2)+'px) scale('+scaleUp.toFixed(4)+')';
   }
 
@@ -1258,8 +1309,29 @@ window.andyIntro = function(el, done){
 
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var raf=0, cancelled=false, started=false, t0=0;
-  function cleanup(){ cancelAnimationFrame(raf); window.removeEventListener('resize', measure); }
-  el.__andyCancel = function(){ cancelled=true; cleanup(); el.__andyCancel=null; };
+  /* A abertura PARA no lockup e esse quadro fica na tela até o apresentador
+     avançar — pode ficar minutos. O tamanho do lockup é 9.4vmin, então entrar
+     em tela cheia, trocar de projetor ou girar a tela muda o disco enquanto
+     --shiftY continua com o px da medição antiga: a marca sai do centro
+     vertical parada na tela. Por isso o fim da animação solta só o rAF
+     (cleanupRAF) e mantém o resize vivo, remedindo e repintando o quadro
+     final. Quem solta tudo é só o cancelamento explícito (cleanupAll). */
+  function cleanupRAF(){ cancelAnimationFrame(raf); }
+  function onResizeFinal(){ measure(); finalState(); }
+  function cleanupAll(){
+    cleanupRAF();
+    window.removeEventListener('resize', measure);
+    window.removeEventListener('resize', onResizeFinal);
+  }
+  /* Fim NORMAL da abertura: encerra o rAF e troca o handler de resize do
+     modo animado (measure) pelo do quadro parado (remede + repinta). */
+  function cleanup(){
+    cleanupRAF();
+    window.removeEventListener('resize', measure);
+    window.removeEventListener('resize', onResizeFinal);
+    window.addEventListener('resize', onResizeFinal);
+  }
+  el.__andyCancel = function(){ cancelled=true; cleanupAll(); el.__andyCancel=null; };
 
   function start(){
     if(started || cancelled) return;
@@ -1638,18 +1710,17 @@ document.documentElement.style.setProperty('--fade', FADE + 'ms');
    ABERTURA
    Roda ao carregar. Quando done() dispara ela FICA PARADA no lockup: a
    apresentação nunca avança sozinha, só quando o apresentador aciona.
-   __andyFlood é o gancho de adaptação ao palco: a tarja em volta do
-   artboard vira junto com a frente de luz, senão o quadro final ficaria
-   claro dentro de uma moldura escura.
+
+   Não há mais gancho __andyFlood aqui. Ele existia para virar a tarja em
+   volta do artboard junto com a frente de luz, e nunca chegou a ser chamado
+   pela abertura (a chamada sumiu no revert para a cópia literal da
+   referência — eram as faixas pretas). #introBoard agora ocupa a tela
+   inteira e a própria abertura pinta tudo, tarja nenhuma sobra. Ver o
+   comentário "TELA 0" no CSS antes de mexer.
 ========================================================================= */
 var introDone = false;
 function playIntro(){
   introDone = false;
-  sc0.style.background = '';
-  sc0.classList.remove('sc-lit');
-  introBoard.__andyFlood = function(p){
-    sc0.style.background = (p >= .5) ? '#FFFFFF' : '#090D11';
-  };
   window.andyIntro(introBoard, function(){ introDone = true; });
 }
 
