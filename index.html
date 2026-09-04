@@ -526,7 +526,7 @@ ol,ul{padding:0;list-style:none}
 .close-top .rule58{width:320px;height:14px;opacity:.55}
 .close-mid{display:flex;align-items:flex-start;justify-content:space-between;gap:80px}
 .close-h{
-  font-size:105px;font-weight:600;letter-spacing:-.04em;line-height:.94;color:var(--ink);
+  font-size:80px;font-weight:600;letter-spacing:-.04em;line-height:.94;color:var(--ink);
 }
 /* Descendente do "y" de "Andy" — mesmo bug do .lock (ver acima), instância nova:
    este h2 usa line-height:.94, mais apertado que o line-height:1 do .lock, então
@@ -570,14 +570,19 @@ ol,ul{padding:0;list-style:none}
 }
 .loop-node:last-child::after{content:none}
 /* a seta que volta: os prumos caem no centro do 1º e do 5º nó */
+/* margin-top:12px abre um vão fixo entre a base da caixa e a curva: a ponta
+   da seta (9px de altura, ver ::after) cabe inteira nesse vão com 3px de
+   folga — nunca encosta na borda da caixa. left:-6px no ::after centra o
+   triângulo de 12px de largura exatamente no centro de .loop-back (que já
+   bate no centro da caixa 1 e da caixa 5, ver comentário em .loop acima). */
 .loop-back{
-  position:relative;height:34px;margin:0 118px 0 118px;
-  border:3px solid var(--brand);border-top:0;border-radius:0 0 34px 34px;
+  position:relative;height:26px;margin:12px 118px 0 118px;
+  border:2px solid var(--brand);border-top:0;border-radius:0 0 20px 20px;
 }
 .loop-back::after{
-  content:"";position:absolute;left:-10px;top:-16px;
-  width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;
-  border-bottom:18px solid var(--brand);
+  content:"";position:absolute;left:-6px;top:-9px;
+  width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;
+  border-bottom:9px solid var(--brand);
 }
 .close-foot{display:flex;align-items:center;gap:24px;font-size:22px;color:var(--ink-3);padding-top:8px}
 .close-foot .sep{color:var(--line-strong)}
@@ -786,7 +791,7 @@ ol,ul{padding:0;list-style:none}
     <div class="demo-frame">
       <video id="demoVideo" muted playsinline preload="auto"
              width="984" height="615" disablepictureinpicture
-             src="andy_demo_01.final.mp4"></video>
+             src="andy_demo_01.mp4"></video>
     </div>
 
     <div class="demo-side">
@@ -1209,8 +1214,14 @@ window.andyIntro = function(el, done){
      hachura: a ordem perpendicular (projeção sobre v) decide qual agente vira
        qual linha do disco — assim eles "penteiam" sem se cruzar.             */
   ag.forEach(function(A){
-    A.projU = A.cxn*16*UX + A.cyn*9*UY;   // 16:9 pondera a proporção de tela
-    A.projV = A.cxn*16*VX + A.cyn*9*VY;
+    /* Pondera pela proporção do PALCO REAL onde isso roda: o artboard do
+       deck é fixo em 1680×672 = 5:2, nunca 16:9 — herdado do arquivo de
+       demonstração solta, onde a página é a tela cheia (proporção variável,
+       16:9 era só um chute razoável). Aqui é sempre 5:2, então a ordem de
+       convergência das 46 hachuras (que decide o desenho do disco) para de
+       ficar torta/sem lógica visual num palco tão mais largo que alto. */
+    A.projU = A.cxn*5*UX + A.cyn*2*UY;
+    A.projV = A.cxn*5*VX + A.cyn*2*VY;
   });
   ag.slice().sort(function(a,b){ return a.projU-b.projU; })
     .forEach(function(A,k){
@@ -1263,6 +1274,7 @@ window.andyIntro = function(el, done){
     word.style.color   = css(C_INK_L);
     lockwrap.style.opacity = '1';
     cvs.style.opacity = '0';
+    if(el.__andyFlood) el.__andyFlood(1);
   }
 
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1477,6 +1489,12 @@ window.andyIntro = function(el, done){
        não é gradiente. Só começa quando o disco já está formado: a claridade
        é o clímax, não um fundo trocando.                                     */
     var fp = eInOutCubic(seg(t, T.flood, T.floodD));
+    /* Gancho pro palco por fora do .andy-stage: o board (1680×672) quase nunca
+       enche a tela toda, sobra tarja nas bordas — e essa tarja é pintada pelo
+       fundo do .screen por fora, não pelo .andy-stage. Sem chamar isso aqui,
+       a tarja fica escura pra sempre mesmo depois da virada de cor: existia
+       o gancho (__andyFlood, embaixo no JS do palco) mas nada nunca chamava. */
+    if(el.__andyFlood) el.__andyFlood(fp);
     if(fp>0){
       flood.style.display='block';
       if(fp>=1){ flood.style.clipPath='none'; }
