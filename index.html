@@ -328,9 +328,32 @@ ol,ul{padding:0;list-style:none}
    técnica do .lock acima. O inset negativo continua no JS e não atrapalha:
    os dois juntos são cinto e suspensório.
 
+   E o corte que REALMENTE aparecia: era HORIZONTAL, no braço direito do "y",
+   não na descida. Contas com os números da própria fonte, medidas com
+   fontTools na Rubik 600 embutida:
+       avanço do "y" ................ 0,5850 em
+       tinta do "y" vai até ......... 0,5676 em  (bbox x_max 567,6/1000)
+       letter-spacing ............... −0,036 em
+   O CSS aplica letter-spacing DEPOIS de todo caractere, inclusive o último,
+   então a borda direita da caixa do .word recua para 0,5850 − 0,036 = 0,5490 em.
+   A tinta vai até 0,5676 em: sobram 0,0186 em de glifo FORA da caixa. E a
+   cortina termina em inset(… 0% …), que recorta exatamente na borda da caixa.
+   A 101,52 px isso decepa 1,89 px do braço direito do "y" — visível a olho nu
+   quando se compara com o "Andy" dos slides, que é texto solto e não tem
+   clip-path nenhum. Era a ÚNICA marca do arquivo com esse recorte, e por isso
+   a única com o "y" cortado.
+
+   O padding-right resolve pelo mesmo princípio do padding-bottom: empurra a
+   borda da caixa para além da tinta, então 0% de inset já não alcança o
+   glifo. .06em é ~3,2× a sobra de 0,0186em. O margin-right negativo devolve
+   o espaço, então a largura do lockup não muda.
+
    Mora AQUI de propósito, fora do bloco da ABERTURA, pelo mesmo motivo do
    .lock: correção que mora lá dentro some no próximo revert literal. */
-.andy-stage .word{padding-bottom:.14em;margin-bottom:-.14em}
+.andy-stage .word{
+  padding-bottom:.14em; margin-bottom:-.14em;
+  padding-right:.06em;  margin-right:-.06em;
+}
 
 /* régua de hachura a 58° — assinatura, não elemento gráfico.
    Listras de parada dura: não há mistura tonal, não é gradiente. */
