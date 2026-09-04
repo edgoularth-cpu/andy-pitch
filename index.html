@@ -97,18 +97,33 @@
 
 /* ---------------------------------------------------------------------------
    LOCKUP — valores de marca, não mexer
---------------------------------------------------------------------------- */
-.lock{display:inline-flex;align-items:baseline;line-height:1;font-weight:600;white-space:nowrap}
+
+   Correção da descendente do "y" (definição ÚNICA — antes havia duas regras
+   .lock{padding-bottom...} de mesma especificidade e valores diferentes; a
+   que vinha depois no arquivo sempre vencia a cascata, então uma "corrigia"
+   e a outra, sem querer, desfazia. Não duplicar de novo — se .lock aparecer
+   em outro contexto, ajuste font-size/color em regra própria (ex.: .foo
+   .lock{...}) e deixe padding/margin só aqui.
+
+   Métrica REAL medida com fontTools na Rubik 600 embutida no arquivo
+   (fvar wght=600, instanciada com varLib.instancer — MVAR não varia
+   ascent/descent nesta fonte, então o resultado é o mesmo em qualquer peso):
+     unitsPerEm 1000 · hhea/OS2-typo ascent 935, descent −250 (idênticos;
+     fsSelection tem USE_TYPO_METRICS ligado, então é isso que o navegador
+     usa para line-height:1) · glyf 'y' yMin real = −190 (−0,190em).
+   Com line-height:1, meia-entrelinha = (1000 − (935+250))/2 = −92,5 unid.
+   A base do glifo cai a 935−92,5 = 842,5 unid. do topo da caixa; o fundo da
+   caixa fica 250−92,5 = 157,5 unid. (0,1575em) abaixo da base. O 'y' desce
+   190 unid. (0,190em) abaixo da base — 0,0325em além do fundo da caixa.
+   Reivindicamos esse espaço com padding-bottom e devolvemos com margin-bottom
+   negativo igual (mesma técnica em toda ocorrência): a caixa cresce para
+   baixo, o layout não anda 1px. .14em é ~4,3× a folga medida — margem para
+   variação de hinting/rounding entre navegadores, sem ficar visível (o
+   espaço extra é vazio e some do fluxo via margin negativo).            */
+.lock{display:inline-flex;align-items:baseline;line-height:1;font-weight:600;white-space:nowrap;
+  padding-bottom:.14em;margin-bottom:-.14em}
 .lock .disc{flex:0 0 auto;position:relative;width:.845em;height:.845em;top:.094em}
 .lock{font-family:Rubik,sans-serif;letter-spacing:-.036em;gap:.135em}
-/* Descendente do "y". Medido na Rubik 600 (unitsPerEm 1000, asc 935, desc −250):
-   o glifo y desce a −0,190 em da base. Com line-height:1 o meio-entrelinha é
-   (1 − 1,185)/2 = −0,0925 em, a base cai a 0,8425 em do topo da caixa e a ponta
-   do y chega a 1,0325 em — 0,0325 em ABAIXO da caixa do .lock. Qualquer
-   contêiner com overflow:hidden corta essa ponta. Reivindicamos o espaço com
-   padding e devolvemos com margem negativa, então o layout não se desloca; o
-   .10em é ~3× a folga medida, margem para fallback de fonte.                  */
-.lock{padding-bottom:.10em;margin-bottom:-.10em}
 
 .andy-stage .lock{ font-size:clamp(34px, 9.4vmin, 128px) }
 .andy-stage .mark{
@@ -117,13 +132,11 @@
 }
 .andy-stage .word{
   display:inline-block;
-  clip-path:inset(-.46em 100% -.46em 0);
+  clip-path:inset(-.30em 100% -.30em 0);
   will-change:clip-path, transform;
 }
 
-/* Clone usado só para a varredura de luz de 58° — única exceção de gradiente.
-   Banda alargada (era 18% de largura, pico opaco) e pico em alpha .55: a luz
-   atravessa em vez de bater — sem flare duro visível. */
+/* Clone usado só para a varredura de luz de 58° — única exceção de gradiente. */
 .andy-stage .lock--sweep{
   position:absolute; left:0; top:0; pointer-events:none;
   -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
@@ -263,14 +276,11 @@ ol,ul{padding:0;list-style:none}
 }
 
 /* ---------- marca ----------
-   Correção da descendente (bug conhecido): a Rubik desce ~.212em no 'y' e com
-   line-height:1 a ponta passa da caixa; qualquer ancestral com overflow:hidden
-   — e o .board tem — a decepa. Reivindico .18em com padding e devolvo com
-   margem negativa igual: a caixa cresce para baixo, o layout não anda 1px. */
-.lock{display:inline-flex;align-items:baseline;line-height:1;white-space:nowrap;font-weight:600;
-  font-family:Rubik,sans-serif;letter-spacing:-.036em;gap:.135em;
-  padding-bottom:.18em;margin-bottom:-.18em}
-.lock .disc{flex:0 0 auto;position:relative;width:.845em;height:.845em;top:.094em}
+   .lock (display, line-height, padding/margin de compensação da descendente
+   do "y" etc.) está definido uma única vez, perto do topo do arquivo — ver
+   "LOCKUP — valores de marca". Não redeclarar padding-bottom/margin-bottom
+   aqui: duas regras .lock com a mesma especificidade já causaram esse bug
+   voltar depois de "corrigido". */
 .lock .disc svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 
 /* régua de hachura a 58° — assinatura, não elemento gráfico.
@@ -516,8 +526,14 @@ ol,ul{padding:0;list-style:none}
 .close-top .rule58{width:320px;height:14px;opacity:.55}
 .close-mid{display:flex;align-items:flex-start;justify-content:space-between;gap:80px}
 .close-h{
-  font-size:112px;font-weight:600;letter-spacing:-.04em;line-height:.94;color:var(--ink);
+  font-size:105px;font-weight:600;letter-spacing:-.04em;line-height:.94;color:var(--ink);
 }
+/* Descendente do "y" de "Andy" — mesmo bug do .lock (ver acima), instância nova:
+   este h2 usa line-height:.94, mais apertado que o line-height:1 do .lock, então
+   a folga real é maior (medida: 0,0625em contra 0,0325em do .lock). Reservamos
+   .16em com padding e devolvemos com margem negativa: ~2,6× a folga medida,
+   sem mover layout (ver derivação completa no .lock, acima). */
+.close-h{padding-bottom:.16em;margin-bottom:-.16em}
 .close-left{flex:0 0 620px}
 .close-rafael{margin-top:30px;font-size:24px;line-height:1.35;color:var(--ink-2);max-width:520px}
 .close-right{flex:1;max-width:740px;padding-top:6px}
@@ -529,7 +545,14 @@ ol,ul{padding:0;list-style:none}
   padding:16px 22px;
 }
 .ask-sub{margin-top:14px;font-size:21px;line-height:1.32;color:var(--ink-2)}
-.loop{display:flex;flex-direction:column}
+/* width:max-content — sem isso .loop-row estica pra largura do .pad (flex
+   column pai com stretch) e o justify-content:center dela abre uma folga
+   nas bordas que a margem fixa do .loop-back (abaixo) não conhece: a seta
+   de volta saía ~86px fora do centro das caixas 1 e 5. Encolhendo .loop
+   ao próprio conteúdo, a margem de 118px do .loop-back volta a bater exato
+   no centro de cada caixa (118px = 236/2, a matemática já estava certa —
+   só faltava o container não ser mais largo que o conteúdo). */
+.loop{display:flex;flex-direction:column;width:max-content;margin:0 auto}
 .loop-row{display:flex;align-items:center;justify-content:center;gap:34px}
 .loop-node{
   position:relative;flex:0 0 auto;width:236px;
@@ -836,7 +859,7 @@ ol,ul{padding:0;list-style:none}
 
     <div class="close-mid">
       <div class="close-left">
-        <h2 class="close-h">Os seis<br>certos.</h2>
+        <h2 class="close-h">Nada escapa<br>aos olhos<br>de Andy.</h2>
         <p class="close-rafael">Detectar é o que existe hoje. Fechar o ciclo é o projeto.</p>
       </div>
       <div class="close-right">
@@ -937,8 +960,7 @@ var GESTURE_RESERVED = {dx:4.765, dy:-7.624, ms:480};
 var C_BG_D=[9,13,17], C_LINE_D=[38,49,61], C_BRAND_D=[110,186,238],
     C_LIVE_D=[79,166,224], C_INK_D=[228,235,242],
     C_UP=[53,178,107], C_DOWN=[240,120,122],
-    C_BRAND_L=[0,99,148], C_LIVE_L=[13,124,182], C_INK_L=[30,37,45],
-    C_WHITE=[255,255,255];
+    C_BRAND_L=[0,99,148], C_LIVE_L=[13,124,182], C_INK_L=[30,37,45];
 
 /* ===========================================================================
    PARTITURA (ms) — total 8500
@@ -947,28 +969,21 @@ var C_BG_D=[9,13,17], C_LINE_D=[38,49,61], C_BRAND_D=[110,186,238],
    ATO 3  claridade, lockup e pausa ........  5020 → 8500
 =========================================================================== */
 var T = {
-  fieldIn:  0,    fieldInD: 260,
-  /* O ato 1 encurtou de 2900 para 1950 ms cortando DENSIDADE DE TEMPO, não
-     acelerando movimento: o stagger de entrada ficou mais largo que a janela
-     do ato (1500 ms de escalonamento contra 1950 de ato), então muitos
-     elementos entram de uma vez; e a onda de reconhecimento começa em 1950,
-     antes de o campo terminar de se formar em ~2020. Nenhuma velocidade de
-     deriva, nenhum período de respiração e nenhuma duração de gesto mudaram —
-     tudo continua acima de 2000 ms.                                          */
-  elIn:     100,  elInD:    420,  elInStagger: 1500,
-  ambOut:   1880, ambOutD:  520,   // textura ambiente sai
-  align:    1950, resolveD: 380, growD: 460, alignStagger: 380,
-  cvGap:    460,  leg1:     400, leg2: 340,
-  hatchOut: 3620, hatchOutD:340,
-  discIn:   3560, discInD:  460,
-  flood:    4020, floodD:   800,   // a virada de cor
-  wipeR:    4120, wipeD:    480,
-  wipeL:    4340,                  // stagger canônico de 220 ms
-  lock:     4900, lockD:    660,
-  word:     5500, wordD:    500,
-  sweep:    5920, sweepD:   580,
-  hold:     6500, holdD:   1000,   // quadro parado antes do done()
-  end:      7500
+  fieldIn:  0,    fieldInD: 320,
+  elIn:     180,  elInD:    520,  elInStagger: 1350,
+  ambOut:   2780, ambOutD:  620,   // textura ambiente sai
+  align:    2900, resolveD: 380, growD: 460, alignStagger: 420,
+  cvGap:    500,  leg1:     400, leg2: 340,
+  hatchOut: 4720, hatchOutD:360,
+  discIn:   4620, discInD:  480,
+  flood:    5020, floodD:   820,   // a virada de cor
+  wipeR:    5120, wipeD:    480,
+  wipeL:    5340,                  // stagger canônico de 220 ms
+  lock:     5900, lockD:    660,
+  word:     6500, wordD:    500,
+  sweep:    6920, sweepD:   580,
+  hold:     7500, holdD:   1000,   // quadro parado antes do done()
+  end:      8500
 };
 
 // 46 agentes = exatamente as 46 hachuras de 58° que constroem o disco
@@ -1064,9 +1079,7 @@ window.andyIntro = function(el, done){
   var ag = [], amb = [], fios = [];
 
   // três planos de profundidade: [alfa base, escala, fator de paralaxe]
-  /* Alfas menores que na versão sem luz: a composição é ADITIVA, então
-     halo + núcleo + cruzamentos somam. O terceiro número é o paralaxe. */
-  var DEPTH = [[0.11,0.72,0.45],[0.21,1.00,0.85],[0.38,1.34,1.35]];
+  var DEPTH = [[0.26,0.72,0.45],[0.52,1.00,0.85],[0.88,1.34,1.35]];
 
   /* Ângulo de fio: nunca perto da horizontal nem da vertical. Um fio quase
      horizontal vira linha de base, um quase vertical vira eixo — os dois
@@ -1095,8 +1108,6 @@ window.andyIntro = function(el, done){
       vy: (rnd()-0.5)*0.010*DEPTH[dp][2],
       per: 2200 + rnd()*1800,      // ≥ 2000 ms: nada lê como alarme
       ph:  rnd()*6.2831853,
-      jitN: rnd(),                 // fase própria do pulso de luz
-      pper: 2600 + rnd()*2200,     // período do pulso — também ≥ 2000 ms
       rev: T.elIn + rnd()*T.elInStagger,
       a:   DEPTH[dp][0]*(0.7+rnd()*0.6),
       sc:  DEPTH[dp][1]
@@ -1110,7 +1121,7 @@ window.andyIntro = function(el, done){
          porque promete retorno. Por isso cada traço tem o seu próprio centro
          espalhado numa faixa alta (jy), sem caminhada e sem base: o olho lê
          cadência e volume, nunca uma sequência de valores.                   */
-      var nt = 7 + ((rnd()*12)|0);
+      var nt = 10 + ((rnd()*20)|0);
       var bandH = 0.06 + rnd()*0.12;                 // altura do espalhamento
       var ticks = [], acc = 0;
       for(var k=0;k<nt;k++){
@@ -1129,7 +1140,7 @@ window.andyIntro = function(el, done){
       A.cxn = clamp(A.cxn, 0.02 + acc*0.5, 0.98 - acc*0.5);
     } else if(type===1){
       // CACHO: dispersão anisotrópica com lacunas — uns colados, outros longe
-      var nd = 5 + ((rnd()*10)|0);
+      var nd = 6 + ((rnd()*16)|0);
       var th = rnd()*Math.PI, el2 = 0.25 + rnd()*0.75;
       var dots=[], mx=0;
       for(var k2=0;k2<nd;k2++){
@@ -1153,27 +1164,25 @@ window.andyIntro = function(el, done){
   }
 
   // ambiente: pontos soltos (profundidade/volume) + fios extras de travessia
-  for(var m=0;m<58;m++){
+  for(var m=0;m<132;m++){
     var dpa=(rnd()*3)|0;
     amb.push({ x:0.01+rnd()*0.98, y:0.02+rnd()*0.96,
                r:(0.6+rnd()*rnd()*1.9)*DEPTH[dpa][1],
                a:DEPTH[dpa][0]*(0.5+rnd()*0.8),
                vx:(rnd()-0.5)*0.024*DEPTH[dpa][2],
                vy:(rnd()-0.5)*0.008*DEPTH[dpa][2],
-               per:2400+rnd()*2000, ph:rnd()*6.2831853, dp:dpa,
-               jitN:rnd(), pper:2700+rnd()*2300,
+               per:2400+rnd()*2000, ph:rnd()*6.2831853,
                rev: 200+rnd()*1500, col: C_LINE_D });
   }
   /* Os três — e apenas três — acentos de mercado. Pontos isolados, distantes
      entre si, jamais em par: evocam o mundo sem virar legenda de alta e baixa. */
   amb[7].col  = C_UP;   amb[7].a  = 0.52; amb[7].r  = 2.2;
-  amb[31].col = C_DOWN; amb[31].a = 0.48; amb[31].r = 2.0;
-  amb[52].col = C_UP;   amb[52].a  = 0.44; amb[52].r  = 1.9;
+  amb[41].col = C_DOWN; amb[41].a = 0.48; amb[41].r = 2.0;
+  amb[104].col = C_UP;  amb[104].a = 0.44; amb[104].r = 1.9;
 
   for(var f=0; f<13; f++){
     fios.push({ x:rnd(), y:rnd(), ang:fioAngle(rnd), lw:0.5+rnd()*0.55,
                 a:0.10+rnd()*0.18, vx:(rnd()-0.5)*0.016, vy:(rnd()-0.5)*0.006,
-                dp:(rnd()*3)|0, jitN:rnd(), pper:2600+rnd()*2400,
                 rev: 300+rnd()*1400 });
   }
 
@@ -1181,7 +1190,7 @@ window.andyIntro = function(el, done){
      Não vira hachura (não são agentes): existe só para que o ato 1 tenha a
      densidade de "informação demais, leitura nenhuma" e some no ato 2.      */
   var tracos = [];
-  for(var v2=0; v2<72; v2++){
+  for(var v2=0; v2<190; v2++){
     var dpv=(rnd()*3)|0;
     tracos.push({ x:0.01+rnd()*0.98, y:0.02+rnd()*0.96,
                   up:(0.003+rnd()*rnd()*0.038)*DEPTH[dpv][1],
@@ -1190,8 +1199,7 @@ window.andyIntro = function(el, done){
                   a:DEPTH[dpv][0]*(0.45+rnd()*0.75),
                   vx:(rnd()-0.5)*0.026*DEPTH[dpv][2],
                   vy:(rnd()-0.5)*0.009*DEPTH[dpv][2],
-                  per:2200+rnd()*2100, ph:rnd()*6.2831853, dp:dpv,
-                  jitN:rnd(), pper:2600+rnd()*2300,
+                  per:2200+rnd()*2100, ph:rnd()*6.2831853,
                   rev:200+rnd()*1600,
                   col: rnd()<0.14 ? C_BRAND_D : C_LINE_D });
   }
@@ -1242,96 +1250,6 @@ window.andyIntro = function(el, done){
     mark.style.transform = 'translateX('+dx0.toFixed(2)+'px) scale('+scaleUp.toFixed(4)+')';
   }
 
-  /* =======================================================================
-     LUZ — emissão, não gradiente de fundo
-     -----------------------------------------------------------------------
-     A energia do campo viaja SEMPRE no eixo de 58°. Um pulso é uma frente
-     reta perpendicular ao eixo (a mesma construção da virada de cor do ato 3)
-     que avança em +u com uma cauda decaindo atrás. Cada elemento soma à sua
-     coordenada de eixo uma fase própria (jitN) e tem período próprio (pper,
-     sempre ≥ 2000 ms), então nada acende junto — mas o SENTIDO da luz é
-     sempre o mesmo, e é o mesmo que o ato 2 vai revelar como eixo da marca.
-     É por isso que a luz pode correr dentro de um fio de ângulo arbitrário
-     sem quebrar a regra de movimento: o que se move é a frente, no eixo; o
-     ponto aceso apenas marca onde ela cruza o fio.
-
-     Render: composição ADITIVA ('lighter'), halo largo e apagado somado a um
-     núcleo — cruzamentos somam sozinhos, que é o efeito desejado. shadowBlur
-     é caro, então é racionado por um orçamento por quadro e reservado ao
-     plano da frente; os planos de fundo ficam desfocados por halo largo e
-     núcleo mole, o que também é o que dá a sensação de profundidade.
-  ======================================================================= */
-  var TAIL_N = 0.30;                 // cauda do pulso, em frações de SPAN
-  function energy(px, py, jitN, per, now){
-    var d = (px-CX)*UX + (py-CY)*UY;             // coordenada no eixo de 58°
-    var tail = TAIL_N*SPAN, cycle = 2*SPAN + tail;
-    var f = (now/per + jitN) % 1; if(f<0) f+=1;
-    var head = f*cycle - SPAN - tail;            // a frente avança em +u
-    var back = head - d;
-    if(back < 0 || back > tail) return 0;
-    var g = 1 - back/tail;
-    return g*g*g;                                // queda cúbica: pico compacto
-  }
-
-  var glowBudget = 0;                // shadowBlur racionado por quadro
-  function blurOn(col, amt){
-    if(glowBudget<=0) return false;
-    glowBudget--;
-    ctx.shadowColor = rgba(col, 0.95); ctx.shadowBlur = amt;
-    return true;
-  }
-  function lineLit(x0,y0,x1,y1,col,a,w,e,dp,sharp){
-    var near = dp===2;
-    // HALO — precisa de presença sobre #090D11, senão desaparece no fundo
-    ctx.lineWidth = w*(near?5.6:8.4)*(sharp?1.45:1);
-    ctx.strokeStyle = rgba(col, a*(near?0.30:0.20)*(1+e*5.0));
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-    /* Traços longos do eixo (sharp): shadowBlur neles custa pela ÁREA e era a
-       origem dos 7 quadros de 33-40 ms medidos no auge da onda. Aqui o glow
-       vem de uma segunda camada de halo — visualmente equivalente, e de graça. */
-    if(sharp && e>0.12){
-      ctx.lineWidth = w*3.6;
-      ctx.strokeStyle = rgba(col, a*0.26*(1+e*4.2));
-      ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-    }
-    // NÚCLEO — no pico puxa para o branco: emissão lê como branco, não como
-    // azul mais claro. O blur escala com a energia e alcança o plano do meio.
-    var used = (!sharp && e>0.34 && dp>=1) ? blurOn(col, (9+13*e)*uS) : false;
-    var cc = mix(col, C_WHITE, (near?0.72:0.48)*e);
-    ctx.lineWidth = w*(sharp?1:(near?1:1.45));
-    ctx.strokeStyle = rgba(cc, Math.min(1, a*(near?1:0.58)*(1+e*5.5)));
-    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-    // segunda passada aditiva no pico: é o que faz os cruzamentos estourarem
-    if(e>0.62){ ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); }
-    if(used) ctx.shadowBlur = 0;
-  }
-  function dotLit(x,y,r,col,a,e,dp){
-    var near = dp===2;
-    ctx.fillStyle = rgba(col, a*0.30*(1+e*5.0));
-    ctx.beginPath(); ctx.arc(x,y,Math.max(0.6,r*(near?4.4:6.4)),0,6.2831853); ctx.fill();
-    var used = (e>0.30 && dp>=1) ? blurOn(col, (8+11*e)*uS) : false;
-    var cc = mix(col, C_WHITE, (near?0.72:0.48)*e);
-    ctx.fillStyle = rgba(cc, Math.min(1, a*(near?1:0.60)*(1+e*5.5)));
-    ctx.beginPath(); ctx.arc(x,y,Math.max(0.35,r*(near?1:1.5)),0,6.2831853); ctx.fill();
-    if(e>0.62){ ctx.beginPath(); ctx.arc(x,y,Math.max(0.35,r*(near?1:1.5)),0,6.2831853); ctx.fill(); }
-    if(used) ctx.shadowBlur = 0;
-  }
-  /* Fio: corpo tênue + o pulso correndo dentro dele. Só os trechos acesos
-     são desenhados, então o custo é ~3 segmentos por fio, não 16.          */
-  function fioLit(x,y,ang,lw,a,col,jitN,pper,now,dp){
-    var LL=(W+H)*1.2, ca=Math.cos(ang), sa=Math.sin(ang);
-    ctx.lineCap='round';
-    lineLit(x-ca*LL, y-sa*LL, x+ca*LL, y+sa*LL, col, a, lw*uS, 0, dp);
-    var N=28, sp=0.62;   // mais segmentos = cometa sem degrau
-    for(var s2=0;s2<N;s2++){
-      var t0=-sp+(2*sp)*(s2/N), t1=-sp+(2*sp)*((s2+1)/N);
-      var ax=x+ca*LL*t0, ay=y+sa*LL*t0, bx=x+ca*LL*t1, by=y+sa*LL*t1;
-      var e=energy((ax+bx)*0.5,(ay+by)*0.5, jitN, pper, now);
-      if(e<=0.05) continue;
-      lineLit(ax,ay,bx,by, C_BRAND_D, a*0.95, lw*uS, e, dp);
-    }
-  }
-
   /* ---- quadro final canônico: lockup Andy sobre fundo claro ---- */
   function finalState(){
     wipeR.setAttribute('width', SLOT_LEN.toFixed(3));
@@ -1339,7 +1257,7 @@ window.andyIntro = function(el, done){
     glintR.setAttribute('opacity','0'); glintL.setAttribute('opacity','0');
     flood.style.display='block'; flood.style.clipPath='none';
     mark.style.transform = 'translateX(0px) scale(1)';
-    word.style.clipPath = 'inset(-.46em 0% -.46em 0)';
+    word.style.clipPath = 'inset(-.30em 0% -.30em 0)';
     word.style.transform = 'translateX(0px)';
     discEl.style.color = css(C_BRAND_L);
     word.style.color   = css(C_INK_L);
@@ -1378,8 +1296,14 @@ window.andyIntro = function(el, done){
       o = fios[i];
       var p = eOutCubic(seg(t, o.rev, 700));
       if(p<=0) continue;
-      fioLit(o.x*W + o.vx*(now/1000)*W, o.y*H + o.vy*(now/1000)*H,
-             o.ang, o.lw, o.a*p*k, C_LINE_D, o.jitN, o.pper, now, o.dp);
+      var ox = o.vx*(now/1000)*W, oy = o.vy*(now/1000)*H;
+      var x = o.x*W+ox, y = o.y*H+oy, LL = (W+H)*1.2;
+      ctx.strokeStyle = rgba(C_LINE_D, o.a*p*k);
+      ctx.lineWidth = o.lw*uS;
+      ctx.beginPath();
+      ctx.moveTo(x-Math.cos(o.ang)*LL, y-Math.sin(o.ang)*LL);
+      ctx.lineTo(x+Math.cos(o.ang)*LL, y+Math.sin(o.ang)*LL);
+      ctx.stroke();
     }
     ctx.lineCap='butt';
     for(i=0;i<tracos.length;i++){               // traços curtos verticais
@@ -1388,9 +1312,12 @@ window.andyIntro = function(el, done){
       if(p3<=0) continue;
       var sh3 = 1 + 0.18*Math.sin(now/o.per*Math.PI*2 + o.ph);  // ≥ 2000 ms
       var x3 = o.x*W + o.vx*(now/1000)*W, y3 = o.y*H + o.vy*(now/1000)*H;
-      var e3 = energy(x3, y3, o.jitN, o.pper, now);
-      lineLit(x3, y3 - o.up*H*sh3, x3, y3 + o.dn*H*sh3,
-              mix(o.col, C_BRAND_D, 0.6*e3), o.a*p3*k, o.lw*uS, e3, o.dp);
+      ctx.strokeStyle = rgba(o.col, o.a*p3*k);
+      ctx.lineWidth = o.lw*uS;
+      ctx.beginPath();
+      ctx.moveTo(x3, y3 - o.up*H*sh3);
+      ctx.lineTo(x3, y3 + o.dn*H*sh3);
+      ctx.stroke();
     }
     for(i=0;i<amb.length;i++){                  // pontos soltos
       o = amb[i];
@@ -1399,21 +1326,10 @@ window.andyIntro = function(el, done){
       // respiração lenta de opacidade — período ≥ 2000 ms
       var br = 0.62 + 0.38*Math.sin(now/o.per*Math.PI*2 + o.ph);
       var x2 = o.x*W + o.vx*(now/1000)*W, y2 = o.y*H + o.vy*(now/1000)*H;
-      var e2a = energy(x2, y2, o.jitN, o.pper, now);
-      var aBase = o.a*p2*br*k;
-      // rastro curto: posições anteriores no próprio vetor de deriva (cardeal).
-      // Só no plano da frente, onde o paralaxe é rápido e o rastro se lê.
-      if(o.dp===2){
-        for(var gI=1; gI<=2; gI++){
-          var lag = gI*110;
-          ctx.fillStyle = rgba(o.col, aBase*(0.22/gI)*(1+e2a*1.6));
-          ctx.beginPath();
-          ctx.arc(x2 - o.vx*(lag/1000)*W, y2 - o.vy*(lag/1000)*H,
-                  Math.max(0.35, o.r*uS*(1-0.18*gI)), 0, 6.2831853);
-          ctx.fill();
-        }
-      }
-      dotLit(x2, y2, o.r*uS, o.col, aBase, e2a, o.dp);
+      ctx.fillStyle = rgba(o.col, o.a*p2*br*k);
+      ctx.beginPath();
+      ctx.arc(x2, y2, Math.max(0.35, o.r*uS), 0, 6.2831853);
+      ctx.fill();
     }
   }
 
@@ -1426,13 +1342,10 @@ window.andyIntro = function(el, done){
 
     cvs.style.opacity = seg(t, T.fieldIn, T.fieldInD).toFixed(3);
     ctx.clearRect(0,0,W,H);
-    // A cena inteira do campo é EMISSIVA: o que se sobrepõe soma.
-    ctx.globalCompositeOperation = 'lighter';
-    glowBudget = 120;                // teto de shadowBlur por quadro
 
     var amb_k  = 1 - eInOutCubic(seg(t, T.ambOut, T.ambOutD));
     // densidade sobe até o pico do ato 1: "informação demais, leitura nenhuma"
-    var gain   = 0.80 + 0.32*eOutCubic(seg(t, 400, 1000));
+    var gain   = 0.80 + 0.32*eOutCubic(seg(t, 800, 1700));
     var hatchOut = eInOutCubic(seg(t, T.hatchOut, T.hatchOutD));
 
     drawAmbient(t, now, amb_k*gain);
@@ -1459,6 +1372,7 @@ window.andyIntro = function(el, done){
           if(A.type===0){
             /* PENTE — os traços encolhem VERTICALMENTE até a linha média
                (movimento cardeal) enquanto o traço de 58° nasce no centroide. */
+            ctx.strokeStyle = rgba(col, aNoise);
             ctx.lineCap='butt';
             for(var k=0;k<A.ticks.length;k++){
               var Tk = A.ticks[k];
@@ -1466,9 +1380,8 @@ window.andyIntro = function(el, done){
               var tx = cxp + (Tk.dx - A.extN*0.5)*W;
               var ty = cyp + Tk.jy*H;
               var up = Tk.up*H*sh*A.sc*(1-rz), dn = Tk.dn*H*sh*A.sc*(1-rz);
-              var eT = energy(tx, ty, A.jitN, A.pper, now);
-              lineLit(tx, ty-up, tx, ty+dn,
-                      mix(col, C_BRAND_D, 0.6*eT), aNoise, Tk.lw*uS, eT, A.dp);
+              ctx.lineWidth = Tk.lw*uS;
+              ctx.beginPath(); ctx.moveTo(tx, ty-up); ctx.lineTo(tx, ty+dn); ctx.stroke();
             }
           } else if(A.type===1){
             /* CACHO — cada ponto desliza para o traço de 58°, em duas pernas
@@ -1486,24 +1399,21 @@ window.andyIntro = function(el, done){
                 px += aA*UX*r1 + bB*r2; py += aA*UY*r1;
               }
               var br2 = 0.66 + 0.34*Math.sin(now/Dt.per*Math.PI*2 + Dt.ph);
-              var eD = energy(px, py, A.jitN, A.pper, now);
-              var aD = aNoise*Dt.a*br2;
-              if(A.dp===2 && rz<0.5){          // rastro curto, plano da frente
-                for(var gJ=1; gJ<=2; gJ++){
-                  var lg = gJ*110;
-                  ctx.fillStyle = rgba(col, aD*(0.22/gJ)*(1+eD*1.6));
-                  ctx.beginPath();
-                  ctx.arc(px - A.vx*(lg/1000)*W, py - A.vy*(lg/1000)*H,
-                          Math.max(0.35, Dt.r*A.sc*uS*(1-0.18*gJ)), 0, 6.2831853);
-                  ctx.fill();
-                }
-              }
-              dotLit(px, py, Dt.r*A.sc*uS, col, aD, eD, A.dp);
+              ctx.fillStyle = rgba(col, aNoise*Dt.a*br2);
+              ctx.beginPath();
+              ctx.arc(px, py, Math.max(0.35, Dt.r*A.sc*uS), 0, 6.2831853);
+              ctx.fill();
             }
           } else {
             /* FIO — não gira (giro seria movimento em ângulo arbitrário):
                cede lugar ao traço de 58° que nasce no mesmo centroide.        */
-            fioLit(cxp, cyp, A.ang, A.lw, aNoise, col, A.jitN, A.pper, now, A.dp);
+            var LL2 = (W+H)*1.2;
+            ctx.strokeStyle = rgba(col, aNoise);
+            ctx.lineWidth = A.lw*uS;
+            ctx.beginPath();
+            ctx.moveTo(cxp-Math.cos(A.ang)*LL2, cyp-Math.sin(A.ang)*LL2);
+            ctx.lineTo(cxp+Math.cos(A.ang)*LL2, cyp+Math.sin(A.ang)*LL2);
+            ctx.stroke();
           }
         }
 
@@ -1546,32 +1456,16 @@ window.andyIntro = function(el, done){
         }
         aNow *= (1-hatchOut);
         if(aNow>0.004 && halfNow>0.5){
-          var ax0=fx2-halfNow*UX, ay0=fy2-halfNow*UY;
-          var ax1=fx2+halfNow*UX, ay1=fy2+halfNow*UY;
-          /* Enquanto é energia, o traço emite e tem o pulso correndo dentro —
-             e aqui o pulso corre exatamente no eixo de 58°, porque o traço
-             É o eixo. Quando vira matéria do disco (e2 > 0,4) a emissão para
-             e volta a composição normal: disco é forma, não luz.            */
-          if(e2 > 0.4){
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.beginPath(); ctx.moveTo(ax0,ay0); ctx.lineTo(ax1,ay1);
-            ctx.strokeStyle = rgba(colNow, Math.min(1, aNow));
-            ctx.lineWidth = Math.max(0.5, lwNow);
-            ctx.lineCap = e2>0.7 ? 'butt' : 'round';
-            ctx.stroke();
-            ctx.globalCompositeOperation = 'lighter';
-          } else {
-            ctx.lineCap='round';
-            var eA = energy(fx2, fy2, A.jitN, A.pper, now);
-            lineLit(ax0,ay0,ax1,ay1, colNow, Math.min(1,aNow),
-                    Math.max(0.5,lwNow), eA, A.dp, true);
-          }
+          ctx.beginPath();
+          ctx.moveTo(fx2 - halfNow*UX, fy2 - halfNow*UY);
+          ctx.lineTo(fx2 + halfNow*UX, fy2 + halfNow*UY);
+          ctx.strokeStyle = rgba(colNow, Math.min(1, aNow));
+          ctx.lineWidth = Math.max(0.5, lwNow);
+          ctx.lineCap = e2>0.7 ? 'butt' : 'round';
+          ctx.stroke();
         }
       }
     }
-
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.shadowBlur = 0;
 
     /* ---------- disco sólido ---------- */
     var dIn = eOutCubic(seg(t, T.discIn, T.discInD));
@@ -1631,7 +1525,7 @@ window.andyIntro = function(el, done){
 
     /* ---------- wordmark: cortina cardeal ---------- */
     var wp = eOutQuint(seg(t, T.word, T.wordD));
-    word.style.clipPath = 'inset(-.46em ' + ((1-wp)*100).toFixed(2) + '% -.46em 0)';
+    word.style.clipPath = 'inset(-.30em ' + ((1-wp)*100).toFixed(2) + '% -.30em 0)';
     word.style.transform = 'translateX(' + (-0.10*(1-wp)).toFixed(4) + 'em)';
 
     /* ---------- varredura de luz no eixo de 58° ----------
