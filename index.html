@@ -310,6 +310,28 @@ ol,ul{padding:0;list-style:none}
 .lock{padding-bottom:.14em;margin-bottom:-.14em}
 .lock .disc svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 
+/* O "y" cortado NA ABERTURA — causa diferente da de cima, mesmo glifo.
+   Aqui quem corta não é o layout, é o recorte da cortina de revelação:
+   .andy-stage .word usa clip-path:inset(-.30em X% -.30em 0). O valor
+   NEGATIVO é o que deixa o rabo do "y" aparecer, porque ele desce 0,190em
+   e a caixa do texto (line-height:1) só cobre até 0,1575em — sobram
+   0,0325em de tinta FORA da caixa. Motor que grampeia inset negativo em
+   zero (é o que Safari/WebKit faz) passa a recortar exatamente na caixa e
+   decepa o rabo. Medido em Chrome forçando o clip em zero: a última linha
+   com tinta sobe 5 px de device (dpr 2) e o rabo, que afina em curva, passa
+   a terminar reto.
+
+   A correção não depende mais do inset negativo: este padding-bottom empurra
+   a BORDA da caixa do .word para 0,14em abaixo da base, então a tinta do "y"
+   passa a ficar dentro da caixa e sobrevive mesmo com o clip grampeado. O
+   margin-bottom negativo devolve o espaço, então nada anda de lugar — mesma
+   técnica do .lock acima. O inset negativo continua no JS e não atrapalha:
+   os dois juntos são cinto e suspensório.
+
+   Mora AQUI de propósito, fora do bloco da ABERTURA, pelo mesmo motivo do
+   .lock: correção que mora lá dentro some no próximo revert literal. */
+.andy-stage .word{padding-bottom:.14em;margin-bottom:-.14em}
+
 /* régua de hachura a 58° — assinatura, não elemento gráfico.
    Listras de parada dura: não há mistura tonal, não é gradiente. */
 .rule58{
