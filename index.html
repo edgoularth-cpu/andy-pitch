@@ -611,6 +611,21 @@ ol,ul{padding:0;list-style:none}
   width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;
   border-bottom:9px solid var(--brand);
 }
+/* O fio SAI da caixa "Aprendizado" — não nasce solto no ar.
+   O margin-top:12px acima abre o vão que a ponta da seta precisa na ponta
+   ESQUERDA (ela chega em "Sinal" e não pode encostar na borda). Mas do lado
+   DIREITO esse mesmo vão deixava o prumo começando 12px abaixo da caixa, com
+   o fio flutuando destacado — era o que estava errado. Este pedaço fecha só
+   o lado direito: 2px de largura (a mesma espessura da borda do .loop-back),
+   subindo os 12px do vão até encostar na base da caixa.
+   right:-2px porque filho absoluto se posiciona pela padding box, que fica
+   2px para dentro da borda; -2px o realinha exatamente sobre a borda direita.
+   top:-12px/height:12px cobre exatamente o margin-top. Se o vão mudar, mudar
+   os dois juntos. */
+.loop-back::before{
+  content:"";position:absolute;right:-2px;top:-12px;
+  width:2px;height:12px;background:var(--brand);
+}
 .close-foot{display:flex;align-items:center;gap:24px;font-size:22px;color:var(--ink-3);padding-top:8px}
 .close-foot .sep{color:var(--line-strong)}
 
